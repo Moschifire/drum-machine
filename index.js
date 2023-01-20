@@ -58,22 +58,82 @@ const audioClips = [
   
 
 function App () {
+
+    const [volume, setVolume] = React.useState(1);
+    const [recording, setRecording] = React.useState("");
+    const [speed, setSpeed] = React.useState(0.5)
+
+    const playRecording = () => {
+        let index = 0;
+        let recordArray = recording.split(" ");
+        const interval = setInterval(() => {
+            const audioTag = document.getElementById(recordArray[index]);
+            audioTag.volume = volume;
+            audioTag.currentTime = 0;
+            audioTag.play();
+            index++;
+        }, speed * 600);
+        setTimeout(
+            () => clearInterval(interval),
+            600 * speed * recordArray.length - 1
+        )
+    };
     return (
-        <div className="bg-info min-vh-100 text-white">
-            <div className="text-center">
+        <div id="drum-machine" className="bg-info min-vh-100 text-white">
+            <div id="display" className="text-center">
                 <h2>Drum Machine</h2>
-                {audioClips.map(clip => {
-                    <Pad key={clip.id} clip={clip} />
-                })}
+                {audioClips.map(clip => (
+                    <Pad id="drum-pad" key={clip.id} clip={clip} volume={volume} setRecording={setRecording} />
+                ))}
+                <br />
+                <h4>Volume</h4>
+                <input type="range" step="0.01" onChange={(e) => setVolume(e.target.value)} value={volume} max="1" min="0" className="w-50" />
+                <h3>{recording}</h3>
+                {recording && (
+                    <>
+                    <button onClick={playRecording} className="btn btn-success">play</button>
+                    <button onClick={() => setRecording("")} className="btn btn-danger">clear</button>
+                    <br />
+                    <h4>Speed</h4>
+                    <input type="range" step="0.01" onChange={(e) => setSpeed(e.target.value)} value={speed} max="1.2" min="0.1" className="w-50" />
+                    </>
+                )}
             </div>
         </div>
     )
 }
 
-function Pad ({clip}) {
+function Pad ({ clip, volume, setRecording }) {
+
+    const [active, setActive] = React.useState(false)
+
+    React.useEffect(() => {
+        document.addEventListener("keydown", handleKeyPress);
+        return () => {
+            document.removeEventListener("keydown", handleKeyPress);
+        }
+    }, [])
+
+    const handleKeyPress =(e) => {
+        if (e.keyCode === clip.keyCode) {
+            playSound();
+        }
+    }
+
+    const playSound = () => {
+        const audioTag = document.getElementById(clip.keyTrigger)
+        setActive(true);
+        setTimeout(() => setActive(false), 200);
+        audioTag.volume = volume;
+        audioTag.currentTime = 0;
+        audioTag.play();
+        setRecording(prev => prev + clip.keyTrigger + " ");
+    }
+
     return (
-        <div className="btn btn-secondary p-4 m-3">
-            <audio id={clip.keyTrigger} />
+        <div onClick={playSound} className={`btn btn-secondary p-4 m-3 ${active && "btn-warning"}`}>
+            <audio className="clip" id={clip.keyTrigger} src={clip.url} />
+            {clip.keyTrigger}
         </div>
     )
 }
